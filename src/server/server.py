@@ -127,12 +127,19 @@ class Server:
         file id
         """
         if self.exists(dir_id):
+            q=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(dir_id,dir)).fetchall()
+            if len(q)==0:
 
-            x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type ,size ,last_update) VALUES (?,?, ?, ?, ?,?)",(name,user,dir_id,Type,0,int(time())))
-            self.conn.commit()
-            self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(user,x.lastrowid,1))
-            for man in read_permission: self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(man,x.lastrowid,0))
-            return x.lastrowid
+                x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type ,size ,last_update) VALUES (?,?, ?, ?, ?,?)",(name,user,dir_id,Type,0,int(time())))
+                self.conn.commit()
+                self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(user,x.lastrowid,1))
+                for man in read_permission:
+                    self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(man,x.lastrowid,0))
+                return x.lastrowid
+            else:
+                return 'there is a file in this name'
+        else:
+            return self.exists_eror
 
     def del_file(self,user,dir_id):
         """
