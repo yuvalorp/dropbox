@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import sqlite3 as lite
+
 from time import time,localtime
 import sqlite3 as lite
 import sys
-from os import remove
 
 #cur.execute("select * from people where name_last=:who and age=:age", {"who": who, "age": age})
 class Server:
@@ -25,7 +24,7 @@ class Server:
                 print "Opened database successfully";
                 #self.cur = self.conn.cursor()
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS users (
-                user_name TEXT unique, user_password TEXT, grouppp TEXT)''')
+                user_name TEXT unique, user_password TEXT, groupp TEXT)''')
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS file_table (_id INTEGER PRIMARY KEY,name TEXT,
                 creator TEXT,location_id INTEGER,type TEXT,size INTEGER,last_update INTEGER )''')
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS permission_table (user TEXT,
@@ -49,6 +48,19 @@ class Server:
             return (user==creator or len(if_user_can_see)!=0)
         elif type==1:
             return user==creator
+    def get_id(self,user,path):
+        path=[user]+path.split('/')
+        location_id=-1
+
+        for dir in path:
+            x=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(location_id,dir)).fetchall()
+            print((location_id,dir))
+            if len(x)!=1:
+                return "the file didnt found"
+            else:
+                location_id=x[0][0]
+        return location_id
+
 
     def print_db(self,id,space=0):
         if self.exists(id):
