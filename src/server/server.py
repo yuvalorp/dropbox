@@ -36,6 +36,7 @@ class Server:
         return if exists
         '''
         return len(self.conn.execute('''SELECT _id  from file_table WHERE _id=?''', (id,)).fetchall())==1
+
     def check_permission(self,user,dir_id,type=0):
         '''
         check if user have permition to a file
@@ -48,19 +49,23 @@ class Server:
             return (user==creator or len(if_user_can_see)!=0)
         elif type==1:
             return user==creator
+
+    def check_type(self,id):
+        x=self.conn.execute('''SELECT _id ,type  from file_table WHERE _id=?''',(id,)).fetchone()[1]
+        return(x )
+
     def get_id(self,user,path):
         path=[user]+path.split('/')
         location_id=-1
 
         for dir in path:
             x=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(location_id,dir)).fetchall()
-            print((location_id,dir))
+            #print((location_id,dir,x))
             if len(x)!=1:
                 return "the file didnt found"
             else:
                 location_id=x[0][0]
         return location_id
-
 
     def print_db(self,id,space=0):
         if self.exists(id):
@@ -84,16 +89,19 @@ class Server:
         """
         if self.exists(dir_id):
             permiton=self.check_permission(user,dir_id)
-
             if permiton:
                 file_list=self.conn.execute('''SELECT name ,creator ,location_id,file_table.type,
                 permission_table.type,size ,last_update FROM file_table  INNER JOIN permission_table  on
                 file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()
-                return file_list
+                file_str=''
+                for f in file_list:
+                    file_str+=f[0]+','+f[1]+','+f[2]+','+f[4]+','+f[5]+'!'
+                return file_str
             else:
                 return self.permission_eror
         else :
             return self.exists_eror
+
     def get_file(self,user,dir_id):
         """
         get_file returns the content of a specific file
@@ -116,13 +124,13 @@ class Server:
                 return self.permission_eror
         else:
             return self.exists_eror
-    def put_file(self,user,name,dir_id,read_permission,Type='file'):
+
+    def put_file(self,user,name,dir_id,Type='file'):
         """
         put_file save a file in the server
         argoments:
         - user - an object of type User, the creator of the file
         - dir - the name of the directory to place the file in
-        - read_permission - list of the users that can read the file, list of type User
         returns:
         file id
         """
@@ -131,16 +139,28 @@ class Server:
             if len(q)==0:
 
                 x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type ,size ,last_update) VALUES (?,?, ?, ?, ?,?)",(name,user,dir_id,Type,0,int(time())))
-                self.conn.commit()
+
                 self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(user,x.lastrowid,1))
-                for man in read_permission:
-                    self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(man,x.lastrowid,0))
+                self.conn.commit()
                 return x.lastrowid
             else:
                 return 'there is a file in this name'
         else:
             return self.exists_eror
 
+    def add_permition(self,user,id,read_permission):
+        if self.check_permission(user,id,1):
+            for man in read_permission:
+                if not self.check_permission(man,id,0):
+                    self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(man,id,0))
+            self.conn.commit()
+        else:return self.permission_eror
+    def remove_permition(self,user,id,read_permission):
+        if self.check_permission(user,id,1):
+            for man in read_permission:
+                self.conn.execute("DELETE from permission_table WHERE file_id=? and user=? and type=?", (id,man,0))
+            self.conn.commit()
+        else:return self.permission_eror
     def del_file(self,user,dir_id):
         """
         delete file
@@ -170,6 +190,7 @@ class Server:
                 return self.permission_eror
         else:
             return self.exists_eror
+
     def rename_file(self,user,dir_id,new_name):
         """
         rename the file
@@ -190,6 +211,7 @@ class Server:
                 return self.permission_eror
         else:
             return self.exists_eror
+
     def replace_file(self,user,file_id,new_place):
         """
         replace the dir
@@ -212,8 +234,7 @@ class Server:
                 return self.permission_eror
         else:
             return self.exists_eror
-
-
 def main():
     pass
+
 if __name__ == '__main__': main()
