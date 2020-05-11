@@ -4,7 +4,7 @@ from time import time,localtime
 import sqlite3 as lite
 import sys
 
-#cur.execute("select * from people where name_last=:who and age=:age", {"who": who, "age": age})
+
 class Server:
     def __init__(self, db_file, data_dir):
         self.db_file=db_file
@@ -24,9 +24,11 @@ class Server:
                 print "Opened database successfully";
                 #self.cur = self.conn.cursor()
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS users (
-                user_name TEXT unique, user_password TEXT, groupp TEXT)''')
+                user_name TEXT unique, user_password TEXT, grouppp TEXT)''')
+
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS file_table (_id INTEGER PRIMARY KEY,name TEXT,
                 creator TEXT,location_id INTEGER,type TEXT,size INTEGER,last_update INTEGER )''')
+
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS permission_table (user TEXT,
                 file_id INTEGER,type INTEGER )''')#type 0 can see,1 can edit
                 self.conn.commit()
@@ -55,7 +57,7 @@ class Server:
         return(x )
 
     def get_id(self,user,path):
-        path=[user]+path.split('/')
+        path=path.split('/')
         location_id=-1
 
         for dir in path:
@@ -93,10 +95,11 @@ class Server:
                 file_list=self.conn.execute('''SELECT name ,creator ,location_id,file_table.type,
                 permission_table.type,size ,last_update FROM file_table  INNER JOIN permission_table  on
                 file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()
-                file_str=''
-                for f in file_list:
-                    file_str+=f[0]+','+f[1]+','+f[2]+','+f[4]+','+f[5]+'!'
-                return file_str
+                #return file_list
+                file_list2=[]
+                for fille in file_list:
+                    file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3],'size':fille[4],'lust update':fille[5]})
+                return file_list2
             else:
                 return self.permission_eror
         else :
@@ -129,13 +132,14 @@ class Server:
         """
         put_file save a file in the server
         argoments:
-        - user - an object of type User, the creator of the file
+        - user - an object of type string, the creator of the file
         - dir - the name of the directory to place the file in
         returns:
         file id
         """
         if self.exists(dir_id):
-            q=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(dir_id,dir)).fetchall()
+
+            q=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(dir_id,name)).fetchall()
             if len(q)==0:
 
                 x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type ,size ,last_update) VALUES (?,?, ?, ?, ?,?)",(name,user,dir_id,Type,0,int(time())))
@@ -155,12 +159,14 @@ class Server:
                     self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(man,id,0))
             self.conn.commit()
         else:return self.permission_eror
+
     def remove_permition(self,user,id,read_permission):
         if self.check_permission(user,id,1):
             for man in read_permission:
                 self.conn.execute("DELETE from permission_table WHERE file_id=? and user=? and type=?", (id,man,0))
             self.conn.commit()
         else:return self.permission_eror
+
     def del_file(self,user,dir_id):
         """
         delete file
@@ -234,7 +240,27 @@ class Server:
                 return self.permission_eror
         else:
             return self.exists_eror
+
+    #====================================================user functions
+
+    def check_pasward(self,name,pasward):
+        try:
+            return(self.conn.execute('''SELECT user_name,user_password  from users WHERE user_name=?''',(name,)).fetchone()[1]==pasward)
+        except:return (False)
+
+    def create_user(self,name,pasward,group=''):
+        q=self.conn.execute('''SELECT user_name  from users WHERE user_name =?''',(name,)).fetchall()
+        if len(q)==0:
+            self.conn.execute("INSERT INTO  users (user_name, user_password, grouppp ) VALUES (?,?, ?)",(name,pasward,group))
+            self.conn.commit()
+            return 'ok'
+        else:
+            return 'there is a user in this name'
+
+    #def change_group(self,user,new_group):
+
+
+
 def main():
     pass
-
 if __name__ == '__main__': main()
