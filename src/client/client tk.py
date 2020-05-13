@@ -15,13 +15,13 @@ except:
 #globals
 username=""
 pasward=""
-path=["","",""]
+path=""
 file_selected=""
 
 root = Tk()
 root.resizable(width=FALSE, height=FALSE)
 
-root.geometry('450x350')
+root.geometry('500x350')
 root.title("drop_box")
 
 
@@ -117,7 +117,7 @@ b_font='Arial 12'
 def back2(filebox,path_string):
     global username
     global path
-    if path.split("/")[-1]!=username:
+    if len(path.split("/")[-1])!=2 or (username=='admin' and len(path.split("/")[-1])!=1 ):
         path="/".join(path.split("/")[:-1])
         write_file_list(get_file_list(username,path,conn), filebox)
         path_string.set(path)
@@ -151,7 +151,7 @@ def rename2(root,filebox):
     global path
     global file_selected
     global conn
-    if file_selected!=["","",""]:
+    if file_selected!="":
         name= sd.askstring("Input", "new name",parent=root)
         q=rename_file(username,str(path+'/'+file_selected[0]),name,conn)
         file_selected[0]=name
@@ -166,8 +166,8 @@ def move():pass
 open_b=Button(buttons_frame, text = "open",command=open_dir, font=b_font)
 open_b.pack(side = LEFT, expand = 1)
 
-
-for f_name in ['back','delete','uploud','rename','move']:
+def change_permition():pass
+for f_name in ['back','delete','uploud','rename','move','change_permition']:
     Button(buttons_frame, text = f_name,command=eval(f_name), font=b_font).pack(side = LEFT, expand = 1)
 
 buttons_frame.pack(side=BOTTOM)
@@ -217,9 +217,6 @@ class log_in_dialog:
             pasward=pasward2+''
             path='/'+username
             write_file_list(get_file_list(username,path,conn), filebox)
-
-
-
 
 
             self.top.destroy()

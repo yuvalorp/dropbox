@@ -46,12 +46,19 @@ class Server:
         '''
         check if user have permition to a file
         '''
+
+        if user=='admin':
+            return (True)#admin have a permition to do evrithing
+
         creator=self.conn.execute('''SELECT _id ,creator  from file_table WHERE _id=?''', (dir_id,)).fetchone()[1]
         if type==0:
-            if_user_can_see =self.conn.execute('''SELECT user,file_id,type from permission_table
+            if_user_can_see =self.conn.execute('''SELECT user,file_id from permission_table
             WHERE user=? and file_id =?  ''', (user,dir_id))
             if_user_can_see=if_user_can_see.fetchall()
-            return (user==creator or len(if_user_can_see)!=0)
+            if_group_can_see=self.conn.execute('''select groupp from groups WHERE user=? INTERSECT
+             select groupp from group_permission_table WHERE file_id=? ''',(user,dir_id)).fetchall()
+            return (user==creator or len(if_user_can_see)!=0 or len(if_group_can_see)!=0)
+
         elif type==1:
             return user==creator
 
@@ -59,7 +66,7 @@ class Server:
         x=self.conn.execute('''SELECT _id ,type  from file_table WHERE _id=?''',(id,)).fetchone()[1]
         return(x )
 
-    def get_id(self,user,path):
+    def get_id(self,path):
         path=path.split('/')
         location_id=-1
 

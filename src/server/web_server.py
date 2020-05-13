@@ -17,7 +17,7 @@ def get_file(username, filename):
     '''
 
     #http://localhost:5000/get_file/yuval/Themes/aero/he-IL/aerolite.msstyles.mui
-    file_id=s.get_id(username,filename)
+    file_id=s.get_id(filename)
     if file_id==s.exists_eror:return('the file didnt found')
     file_type=s.check_type(file_id )
     if file_type=='file':
@@ -64,7 +64,7 @@ def add_permition(username, dirname):
     '''
 
     names = request.args.getlist('names')
-    dir_id=s.get_id(username,dirname)
+    dir_id=s.get_id(dirname)
     if dir_id==s.exists_eror:return('the file didnt found')
     if type(names) is  list :
         s.add_permition(username,dir_id,names)
@@ -83,7 +83,7 @@ def remove_permition(username, dirname):
     '''
 
     names = request.args.getlist('names')
-    dir_id=s.get_id(username,dirname)
+    dir_id=s.get_id(dirname)
     if dir_id==s.exists_eror:return('the file didnt found')
     if type(names) is  list :
         s.remove_permition(username,dir_id,names)
@@ -101,7 +101,7 @@ def del_file(username, dirname):
     delete a file from the server
     '''
     #http://localhost:5000/yuval/Themes/aero/he-IL
-    dir_id=s.get_id(username,dirname)
+    dir_id=s.get_id(dirname)
 
     if dir_id==s.exists_eror:return('the file didnt found')
     q=s.del_file(username,dir_id)
@@ -118,12 +118,11 @@ def rename_file(username, dirname):
     '''
     #http://localhost:5000/yuval/Themes/aero/he-IL?new_name=moshe
     new_name = request.args.get('new_name')
-    #print(new_name,username,dirname)
     if type(new_name) is not unicode :
         r = make_response('the parameters mast be string')
         r.status_code = 400
         return r
-    dir_id=s.get_id(username,dirname)
+    dir_id=s.get_id(dirname)
     if dir_id==s.exists_eror:return('the file didnt found')
     q=s.rename_file(username,dir_id,new_name)
     if q =='ok':
