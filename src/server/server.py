@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from time import time,localtime
 import sqlite3 as lite
 import sys
 
@@ -24,13 +23,17 @@ class Server:
                 print "Opened database successfully";
                 #self.cur = self.conn.cursor()
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS users (
-                user_name TEXT unique, user_password TEXT, grouppp TEXT)''')
+                user_name TEXT unique, user_password TEXT)''')
 
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS file_table (_id INTEGER PRIMARY KEY,name TEXT,
-                creator TEXT,location_id INTEGER,type TEXT,size INTEGER,last_update INTEGER )''')
+                creator TEXT,location_id INTEGER,type TEXT)''')
 
-                self.conn.execute('''CREATE TABLE IF NOT EXISTS permission_table (user TEXT,
-                file_id INTEGER,type INTEGER )''')#type 0 can see,1 can edit
+                self.conn.execute('''CREATE TABLE IF NOT EXISTS groups (user TEXT,groupp TEXT)''')
+
+                self.conn.execute('''CREATE TABLE IF NOT EXISTS permission_table (user TEXT,file_id INTEGER)''')
+
+                self.conn.execute('''CREATE TABLE IF NOT EXISTS group_permission_table (groupp TEXT,
+                file_id INTEGER)''')
                 self.conn.commit()
 
     def exists(self,id):
@@ -91,17 +94,15 @@ class Server:
         """
         if self.exists(dir_id):
             permiton=self.check_permission(user,dir_id)
-            if permiton:
-                file_list=self.conn.execute('''SELECT name ,creator ,location_id,file_table.type,
-                permission_table.type,size ,last_update FROM file_table  INNER JOIN permission_table  on
-                file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()
-                #return file_list
-                file_list2=[]
-                for fille in file_list:
-                    file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3],'size':fille[4],'lust update':fille[5]})
-                return file_list2
-            else:
-                return self.permission_eror
+
+            file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
+            ,size ,last_update FROM file_table  INNER JOIN permission_table  on
+            file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()
+            #return file_list
+            file_list2=[]
+            for fille in file_list:
+                file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[2]})
+            return file_list2
         else :
             return self.exists_eror
 
@@ -138,17 +139,18 @@ class Server:
         file id
         """
         if self.exists(dir_id):
+            if name!=user:
 
-            q=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(dir_id,name)).fetchall()
-            if len(q)==0:
 
-                x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type ,size ,last_update) VALUES (?,?, ?, ?, ?,?)",(name,user,dir_id,Type,0,int(time())))
+                q=self.conn.execute('''SELECT _id ,name,location_id  from file_table WHERE location_id=? and name =?''',(dir_id,name)).fetchall()
+                if len(q)==0:
 
-                self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(user,x.lastrowid,1))
-                self.conn.commit()
-                return x.lastrowid
-            else:
-                return 'there is a file in this name'
+                    x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",(name,user,dir_id,Type))
+
+                    self.conn.commit()
+                    return x.lastrowid
+                else:
+                    return 'there is a file in this name'
         else:
             return self.exists_eror
 
@@ -184,6 +186,8 @@ class Server:
                 #remove(self.data_dir+str(dir_id)+'.'+file_type)
 
                 self.conn.execute("DELETE from file_table WHERE _id=?", (dir_id,))
+                self.conn.execute("DELETE from  permission_table WHERE file_id=?", (dir_id,))
+                self.conn.execute("DELETE from  group_permission_table WHERE file_id=?", (dir_id,))
                 self.conn.commit()
                 files_to_delete=[]
                 if file_type=='file':
@@ -241,6 +245,16 @@ class Server:
         else:
             return self.exists_eror
 
+    def who_can_see(self,file_id):
+        """
+        return all of the users in the input group
+        """
+        users=self.conn.execute('''SELECT (user_name,file_id) from permission_table WHERE file_id=?''',(file_id)).fetchall()
+        users_list=[]
+        for user in users:
+            users_list.append(user[0])
+        return(users_list)
+
     #====================================================user functions
 
     def check_pasward(self,name,pasward):
@@ -250,17 +264,45 @@ class Server:
 
     def create_user(self,name,pasward,group=''):
         q=self.conn.execute('''SELECT user_name  from users WHERE user_name =?''',(name,)).fetchall()
-        if len(q)==0:
-            self.conn.execute("INSERT INTO  users (user_name, user_password, grouppp ) VALUES (?,?, ?)",(name,pasward,group))
-            self.conn.commit()
-            return 'ok'
+        if len(q)==0 :
+            if name!="admin" and name!="ADMIN":
+                self.conn.execute("INSERT INTO  users (user_name, user_password ) VALUES (?,?, ?)",(name,pasward))
+                self.conn.commit()
+                x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",(name,name,1,'file'))
+                return 'ok'
+            else:
+                return("the username cant be 'admin'")
         else:
             return 'there is a user in this name'
+    def files_can_see(self,user):
+        """
+        return all of the file that the user can see and they arent his files
+        """
+        files=self.conn.execute('''SELECT user_name,file_id from permission_table WHERE user_name=?''',(user)).fetchall()
+        file_list=[]
+        for filee in files:
+            file_list.append(filee[1])
+        return(file_list)
+    #====================================================groups functions
+    def who_in_group(self,group_name):
+        """
+        return all of the users in the input group
+        """
+        users=self.conn.execute('''SELECT user_name,groupp from groups WHERE groupp=?''',(group_name)).fetchall()
+        users_list=[]
+        for user in users:
+            users_list.append(user[0])
+        return(users_list)
+    def groups_user_in(self,user):
+        """
+        return all of the groups that the user is in them
+        """
+        groups=self.conn.execute('''SELECT user_name,groupp from groups WHERE user_name=?''',(user)).fetchall()
+        group_list=[]
+        for groupp in groups:
+            group_list.append(groupp[1])
+        return(group_list)
 
-    #def change_group(self,user,new_group):
 
-
-
-def main():
-    pass
+def main():pass
 if __name__ == '__main__': main()
