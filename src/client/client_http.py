@@ -45,3 +45,33 @@ def delete_file(username,path,conection):
         return (res.read())
     else:
         return ("there was a conection eror")
+
+def replace(username,path,new_path,conn):
+    print(username,path,new_path)
+    conn.request("GET", "/replace/"+username+path+"?new_place="+new_path)
+    res = conn.getresponse()
+    if res.status==200:
+        return (res.read())
+    else:
+        return ("there was a conection eror")
+def get_type(path,conection):
+    conection.request("GET", "/get_type/"+path)
+    res = conection.getresponse()
+    if res.status==200:
+        return (res.read())
+    else:
+        return ("there was a conection eror")
+def change_per(path,per_list,group_per_list,conn):
+    conn.request("GET", "/change_per/"+path)
+    res = conn.getresponse()
+    if res.status==200:
+        return (res.read())
+    else:
+        return ("there was a conection eror")
+def get_per(path,conn):
+    conn.request("GET", "/get_per/"+path)
+    res = conn.getresponse()
+    if res.status==200:
+        return (res.read())
+    else:
+        return ("there was a conection eror")

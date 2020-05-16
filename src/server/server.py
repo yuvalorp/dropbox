@@ -67,10 +67,14 @@ class Server:
         return(x )
 
     def get_id(self,path):
+        if path[0]=='/':path=path[1:]
         path=path.split('/')
+
         location_id=-1
 
+
         for dir in path:
+
             x=self.conn.execute('''SELECT _id ,name,location_id,type  from file_table WHERE location_id=? and name =?''',(location_id,dir)).fetchall()
             #print((location_id,dir,x))
             if len(x)!=1:
@@ -102,13 +106,17 @@ class Server:
         if self.exists(dir_id):
             permiton=self.check_permission(user,dir_id)
 
+            """
+
             file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
-            ,size ,last_update FROM file_table  INNER JOIN permission_table  on
-            file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()
-            #return file_list
+             FROM file_table  INNER JOIN permission_table  on
+            file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()"""
+            file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
+            FROM file_table  WHERE location_id=? and creator=?''', (dir_id,user)).fetchall()
+
             file_list2=[]
             for fille in file_list:
-                file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[2]})
+                file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3]})
             return file_list2
         else :
             return self.exists_eror
@@ -146,7 +154,7 @@ class Server:
         file id
         """
         if self.exists(dir_id):
-            if name!=user:
+            if name!=user and name!="":
 
 
                 q=self.conn.execute('''SELECT _id ,name,location_id  from file_table WHERE location_id=? and name =?''',(dir_id,name)).fetchall()
@@ -161,20 +169,23 @@ class Server:
         else:
             return self.exists_eror
 
-    def add_permition(self,user,id,read_permission):
-        if self.check_permission(user,id,1):
-            for man in read_permission:
-                if not self.check_permission(man,id,0):
-                    self.conn.execute("INSERT INTO  permission_table (user,file_id ,type ) VALUES (?,?, ?)",(man,id,0))
-            self.conn.commit()
-        else:return self.permission_eror
+    def change_per(self,user,id,read_permission):
 
-    def remove_permition(self,user,id,read_permission):
-        if self.check_permission(user,id,1):
-            for man in read_permission:
-                self.conn.execute("DELETE from permission_table WHERE file_id=? and user=? and type=?", (id,man,0))
+        if self.check_permission(user,id):
+            self.conn.execute("DELETE from permission_table WHERE file_id=? ", (id,))
+            self.conn.execute("DELETE from group_permission_table WHERE file_id=? ", (id,))
+            for x in read_permission:
+                b=False
+                if len(x)>6:
+                    if x[6:]=='group ' or x[6:]=='Group ' or x[6:]=='GROUP ':
+                        b=True
+                if b:
+                    self.conn.execute("INSERT INTO  group_permission_table (user,file_id ) VALUES (?, ?)",(x[:6],id))
+                else:
+                    self.conn.execute("INSERT INTO  permission_table (user,file_id ) VALUES (?, ?)",(x,id))
             self.conn.commit()
-        else:return self.permission_eror
+        else:
+            return self.permission_eror
 
     def del_file(self,user,dir_id):
         """
@@ -281,6 +292,7 @@ class Server:
                 return("the username cant be 'admin'")
         else:
             return 'there is a user in this name'
+
     def files_can_see(self,user):
         """
         return all of the file that the user can see and they arent his files
@@ -300,6 +312,7 @@ class Server:
         for user in users:
             users_list.append(user[0])
         return(users_list)
+
     def groups_user_in(self,user):
         """
         return all of the groups that the user is in them
@@ -311,5 +324,7 @@ class Server:
         return(group_list)
 
 
-def main():pass
-if __name__ == '__main__': main()
+def main():
+    pass
+if __name__ == '__main__':
+    main()

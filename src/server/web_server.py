@@ -57,10 +57,10 @@ def put_file(username, dirname):
         return r
 
 
-@app.route('/add_permition/<username>/<path:dirname>', methods=["POST"])
-def add_permition(username, dirname):
+@app.route('/change_per/<username>/<path:dirname>', methods=["POST"])
+def change_permition(username, dirname):
     '''
-    add permition to a file
+    change permition to a file
     '''
 
     names = request.args.getlist('names')
@@ -164,17 +164,54 @@ def who_can_see(dirname):
 def files_can_see(username):
     return (s.files_can_see(username))
 
-
+'''
 @app.route('/who_in_group/<groupp>')
 def who_in_group(groupp):
     return (s.who_in_group(groupp))
-
+'''
 
 @app.route('/groups_user_in/<username>')
 def groups_user_in(username):
     return (s.groups_user_in(username))
 
+@app.route('/replace/<username>/<path:dirname>')
+def replace(username,dirname):
+    new_place = request.args.get('new_place')
+
+    if type(new_place) != unicode:
+        r = make_response('the parameters mast be string')
+        r.status_code = 400
+        return r
+    file_id=s.get_id(dirname)
+
+    if file_id==s.exists_eror:
+
+        r = make_response(s.exists_eror)
+        r.status_code = 400
+        return r
+    new_place=s.get_id(new_place)
+    print(username,file_id,new_place)
 
 
+    ans=s.replace_file(username,file_id,new_place)
+    if ans=="ok":
+        return ("ok")
+    else:
+        r = make_response(ans)
+        r.status_code = 400
+        return r
+'''
+@app.route('/check_type/<path:dirname>')
+def check_type(userame,dirname):
+    file_id=s.get_id(dirname)
+    file_id=s.get_id(dirname)
+    if file_id==s.exists_eror:
+        r = make_response(s.exists_eror)
+        r.status_code = 400
+        return r
+    else:
+        file_type=s.check_type(file_id)
+        return file_type
+'''
 
 if __name__ == '__main__':app.run(threaded=False)
