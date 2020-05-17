@@ -8,6 +8,7 @@ from client_http import *
 import httplib
 from move_dialog import *
 from permition_dialog import *
+from LOG_dialog import log_dialog
 try:
     conn = httplib.HTTPConnection("localhost", port=5000)
 except:
@@ -84,12 +85,14 @@ def uploud():pass
 
 
 
+
 def open_dir2(filebox ,path_string,conn):
     global path
     global file_selected
     #if file_selected[2]=='file':
     if file_selected!=["","",""]:
         path+='/'+file_selected[0]
+
         write_file_list(get_file_list(username[0],path,conn), filebox)
         path_string.set(path[6:])
 open_dir=partial(open_dir2,listbox,path_string,conn)
@@ -138,6 +141,7 @@ open_b.pack(side = LEFT, expand = 1)
 def change_permition():
     global username
     global conn
+    per_list=get_per (path,conn)
     d = per_dialog(root,username,conn,path+'/'+file_selected[0],["24"],["group hiiiiiiiiii"])
     d.root.wait_window(d.top)
     q=replace(username[0],path+'/'+file_selected[0],d.path)
@@ -192,9 +196,13 @@ class log_in_dialog:
         elif s==False:
             eror_string.set("the username or the pasward is incorect")
         else:
+
             username[0]=username2
             pasward=pasward2+''
-            path='/admin/'+username[0]
+            if username2=='admin':
+                path='/admin'
+            else:
+                path='/admin/'+username[0]
             #print(get_file_list(username,path,conn))
             write_file_list(get_file_list(username[0],path,conn), filebox)
 
@@ -283,6 +291,16 @@ def sign_up():
 
 log_out_b=Button(frame, text = "sign up",command=sign_up,  width = 10, font='Arial 12' ).grid(row=3,column=0)#.pack(side = TOP, fill = X)
 
+def show_log():
+    global conn
+    global username
+    if username=='admin':
+
+        d = log_dialog(root,conn)
+        d.root.wait_window(d.top)
+
+LOG_b=Button(frame, text = "see LOG",command=show_log,  width = 10, font='Arial 12' )
+LOG_b.grid(row=5,column=0)
 
 frame.pack(side=LEFT,fill=Y)
 

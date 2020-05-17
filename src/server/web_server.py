@@ -1,5 +1,7 @@
 from flask import Flask, request, make_response
 from server import *
+from werkzeug.utils import secure_filename
+from json import dumps
 
 
 
@@ -42,20 +44,41 @@ def put_file(username, dirname):
         r = make_response('the parameters mast be string')
         r.status_code = 400
         return r
-    dir_id=s.get_id(username,dirname)
-    if dir_id==s.exists_eror:return('the file didnt found')
+    dir_id=s.get_id(dirname)
+    if dir_id==s.exists_eror:
+        return('the file didnt found')
     dir_type=s.check_type(dir_id )
     if dir_type=='file':
+        """
+
+        if ('content-type' in request.headers) and (request.headers['content-type'] == 'application/json'):
+            # Handle directory creation
+            pass
+
+        elif ('content-type' in request.headers) and (request.headers['content-type'].startswith('multipart/form-data')):
+            # Handle file upload
+            if ('file' in request.files):
+                request.files['file'].save('test.bin')
+        """
+
         q=s.put_file(str(username),str(name),dir_id,str(Type))
+
         if type(q) is int:
             return ''
         else:
             return q
+
     else:
         r = make_response('the path mast be a directory')
         r.status_code = 400
         return r
 
+@app.route('/test', methods=["POST"])
+def testx():
+    print(request.headers)
+    print(request.headers['host'])
+    print(request.headers['xxxx'])
+    return ''
 
 @app.route('/change_per/<username>/<path:dirname>', methods=["POST"])
 def change_permition(username, dirname):
@@ -74,25 +97,21 @@ def change_permition(username, dirname):
         r = make_response('the parameters mast be string')
         r.status_code = 400
         return r
-
-
-@app.route('/remove_permition/<username>/<path:dirname>', methods=["POST"])
-def remove_permition(username, dirname):
-    '''
-    add permition to a file
-    '''
-
-    names = request.args.getlist('names')
+@app.route('/get_per/<username>/<path:dirname>')
+def get_per(username,dirname):
     dir_id=s.get_id(dirname)
     if dir_id==s.exists_eror:return('the file didnt found')
-    if type(names) is  list :
-        s.remove_permition(username,dir_id,names)
-    elif type(names) is not unicode:
-        s.remove_permition(username,dir_id,[names])
-    else:
-        r = make_response('the parameters mast be string')
-        r.status_code = 400
-        return r
+    files_list=s.who_can_see(dir_id)
+    group_files_list=s.who_group_can_see(dir_id)
+    x=''
+    for i in group_files_list:
+        x='group '+i
+        files_list.append(x)
+    return (dumps(files_list))
+
+
+
+
 
 
 @app.route('/del_file/<username>/<path:dirname>', methods=["DEL"])
@@ -213,5 +232,9 @@ def check_type(userame,dirname):
         file_type=s.check_type(file_id)
         return file_type
 '''
+
+@app.route('/get_log')
+def get_log():
+    return(s.get_log())
 
 if __name__ == '__main__':app.run(threaded=False)

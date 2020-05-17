@@ -1,4 +1,4 @@
-from json import  loads
+from json import  loads,dumps
 def check_pasward(name,pas,conection):
     conection.request("GET", "/check_pasward?pasward="+pas+"&user="+name)
 
@@ -61,15 +61,25 @@ def get_type(path,conection):
         return (res.read())
     else:
         return ("there was a conection eror")
-def change_per(path,per_list,group_per_list,conn):
-    conn.request("GET", "/change_per/"+path)
+
+def change_per(username,path,per_list,group_per_list,conn):
+    conn.request("GET", "/change_per/"+username+path+"?names="+dumps(per_list,group_per_list))
     res = conn.getresponse()
     if res.status==200:
         return (res.read())
     else:
         return ("there was a conection eror")
+
 def get_per(path,conn):
     conn.request("GET", "/get_per/"+path)
+    res = conn.getresponse()
+    if res.status==200 or res.read()=='the file didnt found' :
+        return (loads(res.read()))
+    else:
+        return ("there was a conection eror")
+
+def get_log(conn):
+    conn.request("GET", "/get_log")
     res = conn.getresponse()
     if res.status==200:
         return (res.read())

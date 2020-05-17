@@ -2,6 +2,9 @@
 
 import sqlite3 as lite
 import sys
+from os import path
+from os import getcwd
+from time import time
 
 
 class Server:
@@ -11,6 +14,9 @@ class Server:
         self.conn = None
         self.permission_eror="the user isn't have permishion to do it"
         self.exists_eror="the file doesnt exists"
+        #create the admin directory in the first time-all of the users file will be in it
+        b=not path.exists(db_file)
+
         file_name=db_file
         #'C:\\Users\\yuval\\projects\\drop_box\\clients_files.db'
         try:
@@ -20,7 +26,7 @@ class Server:
             sys.exit(1)
         finally:
             if self.conn:
-                print "Opened database successfully";
+                print "Opened database successfully"
                 #self.cur = self.conn.cursor()
                 self.conn.execute('''CREATE TABLE IF NOT EXISTS users (
                 user_name TEXT unique, user_password TEXT)''')
@@ -36,9 +42,17 @@ class Server:
                 file_id INTEGER)''')
                 self.conn.commit()
 
+                self.conn.execute('''CREATE TABLE IF NOT EXISTS log (time INTEGER,text TEXT)''')
+                self.conn.commit()
+
+                if b:
+                    self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",('admin','admin',-1,'file'))
+                    self.conn.commit()
+                self.add_to_log("Opened database successfully")
+
     def exists(self,id):
         '''
-        return if exists
+        return if file exists
         '''
         return len(self.conn.execute('''SELECT _id  from file_table WHERE _id=?''', (id,)).fetchall())==1
 
@@ -104,7 +118,15 @@ class Server:
         list of file object or dir object
         """
         if self.exists(dir_id):
-            permiton=self.check_permission(user,dir_id)
+            if user=='admin':
+                file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
+                FROM file_table  WHERE location_id=?''', (dir_id,)).fetchall()
+
+                file_list2=[]
+                for fille in file_list:
+                    file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3]})
+                return file_list2
+            #permiton=self.check_permission(user,dir_id)
 
             """
 
@@ -120,6 +142,8 @@ class Server:
             return file_list2
         else :
             return self.exists_eror
+
+
 
     def get_file(self,user,dir_id):
         """
@@ -265,7 +289,7 @@ class Server:
 
     def who_can_see(self,file_id):
         """
-        return all of the users in the input group
+        return all of the users that can see the file
         """
         users=self.conn.execute('''SELECT (user_name,file_id) from permission_table WHERE file_id=?''',(file_id)).fetchall()
         users_list=[]
@@ -322,6 +346,28 @@ class Server:
         for groupp in groups:
             group_list.append(groupp[1])
         return(group_list)
+
+    def who_group_can_see(self,file_id):
+        """
+        return all of the groups that can see the file
+        """
+        groups=self.conn.execute('''SELECT * from group_permission_table WHERE file_id=?''',(file_id)).fetchall()
+
+        group_list=[]
+        for groupp in groups:
+            group_list.append(groupp[0])
+        return(group_list)
+
+
+    #====================================================log functions
+    def get_log(self):
+        x=self.conn.execute('''SELECT * FROM log  ''', ()).fetchall()
+        return(sorted(x,key=lambda x:x[0]))
+
+    def add_to_log(self,text):
+        self.conn.execute("INSERT INTO  log (time,text ) VALUES (?, ?)",(time(),text))
+
+
 
 
 def main():

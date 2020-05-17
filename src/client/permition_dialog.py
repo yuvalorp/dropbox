@@ -4,11 +4,17 @@ from Tkinter import *
 from functools import partial
 from move_dialog import *
 class per_dialog:
-    def __init__(self, root,username,conn,path,per_list,group_per_list):
+    def __init__(self, root,username,conn,path,per_list):
         self.path=path[0]
         self.top = Toplevel(root)
+        Label(self.top ,text="use 'delete' to remove permition\n or use 'add' to add permition", font='Arial 13').pack()
         self.listbox=Listbox(self.top,  width = 30,height=10, font='Arial 12')
         self.listbox.bind('<<ListboxSelect>>', self.on_select)
+        for i in per_list:
+            self.group_per_list.append(0,i)
+        for i in group_per_list:
+            self.group_per_list.append(0,"group"+i)
+
         self.listbox.pack()
         self.index=0
         self.group_per_list=group_per_list
@@ -31,13 +37,10 @@ class per_dialog:
     def delete(self):
 
         x=self.file_selected
-        self.listbox.insert('end',x)
-        if len(x)>6:
-            if x[6:]=='group ' or x[6:]=='Group ' or x[6:]=='GROUP ':
-                self.group_per_list.remove(x[:6])
-                return ()
-            return ()
-        self.per_list.remove(x[:6])
+
+
+
+        self.per_list.remove(x)
         self.listbox.delete(self.index,self.index)
 
 
