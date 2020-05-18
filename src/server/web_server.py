@@ -3,9 +3,11 @@ from server import *
 from werkzeug.utils import secure_filename
 from json import dumps,loads
 
+import os
 
-
-s=Server('C:\\Users\\yuval\\projects\\drop_box\\clients_files.db','C:\\Users\\yuval\\projects\\drop_box\\client_files')
+cwd=os.getcwd()
+if not os.path.exists(cwd+'\\client_files'):os.mkdir(cwd+'\\client_files')
+s=Server(cwd+'\\db_files.db',cwd+'C:\\client_files')
 app = Flask(__name__)
 
 
@@ -40,6 +42,8 @@ def put_dir(username, dirname):
     '''
 
     name = request.args.get('name')
+    print(type(name))
+
 
     s.add_to_log("user send file username: "+str(username)+"  directory name: "+ dirname)
     if type(name) is not unicode:
@@ -47,6 +51,7 @@ def put_dir(username, dirname):
         r.status_code = 400
         return r
     dir_id=s.get_id(dirname)
+    print (username,dir_id,name)
     if dir_id==s.exists_eror:
         return('the file didnt found')
     dir_type=s.check_type(dir_id )

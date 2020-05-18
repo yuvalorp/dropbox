@@ -109,3 +109,12 @@ def get_log(conn):
 
     else:
         return ("there was a conection eror")
+def put_dir(user,path,name,conn):
+    conn.request("POST", "/put_dir/"+user+path+"?name="+name)
+    res = conn.getresponse()
+
+
+    if res.status==200:
+        x=loads(res.read())
+        if type(x)!=str:
+            return (x['log'])

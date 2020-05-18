@@ -95,7 +95,10 @@ def uploud_file2(root,host,port):
     uploud(host,port,username[0],path,root.filename)
 uploud_file=partial(uploud_file2,root,host,port)
 
-def create_directory():pass
+def create_directory():
+    global username,path,conn
+    name=sd.askstring("","what the name of the directory?")
+    put_dir(username[0],path,name,conn)
 
 
 

@@ -3,7 +3,7 @@
 import sqlite3 as lite
 import sys
 from os import path
-from os import getcwd
+
 from time import time
 
 
@@ -48,6 +48,8 @@ class Server:
                 if b:
                     self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",('root','root',-1,'file'))
                     self.conn.commit()
+                    self.create_user('admin','admin')
+                    self.create_user('user','user')
                 self.add_to_log("Opened database successfully")
 
     def exists(self,id):
@@ -314,7 +316,7 @@ class Server:
     def create_user(self,name,pasward,groups=[]):
         q=self.conn.execute('''SELECT user_name  from users WHERE user_name =?''',(name,)).fetchall()
         if len(q)==0 :
-            if name!="admin" and name!="ADMIN" and name!="":
+            if name!="":
                 self.conn.execute("INSERT INTO  users (user_name, user_password ) VALUES (?, ?)",(name,pasward))
                 self.conn.commit()
                 x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",(name,name,1,'file'))
