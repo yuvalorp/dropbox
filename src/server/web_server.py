@@ -7,7 +7,7 @@ import os
 
 cwd=os.getcwd()
 if not os.path.exists(cwd+'\\client_files'):os.mkdir(cwd+'\\client_files')
-s=Server(cwd+'\\db_files.db',cwd+'C:\\client_files')
+s=Server(cwd+'\\db_files.db',cwd+'\\client_files')
 app = Flask(__name__)
 
 
@@ -94,7 +94,7 @@ def put_file(username, dirname):
                 if type(q) is int:
 
                     print(s.data_dir+'/'+str(q))
-                    fo.save(s.data_dir+'/'+str(q))
+                    fo.save(s.data_dir+'\\'+str(q))
                     return ''
                 else:
                     return q

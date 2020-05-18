@@ -93,6 +93,7 @@ def uploud_file2(root,host,port):
     global path
     root.filename = fd.askopenfilename(initialdir = "/",title = "Select file")
     uploud(host,port,username[0],path,root.filename)
+    write_file_list(get_file_list(username[0],path,conn), listbox)
 uploud_file=partial(uploud_file2,root,host,port)
 
 def create_directory():

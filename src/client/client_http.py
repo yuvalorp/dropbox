@@ -38,7 +38,7 @@ def get_file(username,path,conection):
     res=conection.getresponse()
     if res.status==200:
 
-        open(filename, 'w').write(res.read())
+        open(filename, 'wb').write(res.read())
         return ('')
 
         return (loads(res.read()))
