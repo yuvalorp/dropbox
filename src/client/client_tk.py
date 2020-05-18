@@ -9,8 +9,11 @@ import httplib
 from move_dialog import *
 from permition_dialog import *
 from LOG_dialog import log_dialog
+from  upload import post_multipart as uploud
+host="localhost"
+port=5000
 try:
-    conn = httplib.HTTPConnection("localhost", port=5000)
+    conn = httplib.HTTPConnection(host, port=port)
 except:
     print("there was a conection eror plese try again later")
     exit()
@@ -19,13 +22,13 @@ except:
 
 username=[""]
 pasward=""
-path="/admin"
+path="/root"
 file_selected=["","",""]
 
 root = Tk()
 root.resizable(width=FALSE, height=FALSE)
 
-root.geometry('500x350')
+root.geometry('650x350')
 root.title("drop_box")
 
 
@@ -63,10 +66,13 @@ def back2(filebox,path_string):
     global username
     global path
 
-    if len(path.split("/"))>2 or (username[0]=='admin' and len(path.split("/"))>1 ):
+    if len(path.split("/"))>1 :
         path="/".join(path.split("/")[:-1])
-        write_file_list(get_file_list(username[0],path,conn), filebox)
-        path_string.set(path[6:])
+        x=get_file_list(username[0],path,conn)
+
+        if  type(x)!=str and type(x['file_list'])!=unicode :
+            write_file_list(x, filebox)
+            path_string.set(path[6:])
 back=partial(back2,listbox,path_string)
 
 def delete2(filebox):
@@ -81,7 +87,16 @@ def delete2(filebox):
             elif q=="ok":
                 write_file_list(get_file_list(username[0],path,conn), filebox)
 delete=partial(delete2,listbox)
-def uploud():pass
+
+def uploud_file2(root,host,port):
+    global username
+    global path
+    root.filename = fd.askopenfilename(initialdir = "/",title = "Select file")
+    uploud(host,port,username[0],path,root.filename)
+uploud_file=partial(uploud_file2,root,host,port)
+
+def create_directory():pass
+
 
 
 
@@ -93,8 +108,13 @@ def open_dir2(filebox ,path_string,conn):
     if file_selected!=["","",""]:
         path+='/'+file_selected[0]
 
-        write_file_list(get_file_list(username[0],path,conn), filebox)
-        path_string.set(path[6:])
+        if file_selected[2]=='file':
+            x=get_file_list(username[0],path,conn)
+        else:
+            x=get_file(username[0],path,conn)
+        if  type(x)!=str and type(x['file_list'])!=unicode :
+            write_file_list(x, filebox)
+            path_string.set(path[6:])
 open_dir=partial(open_dir2,listbox,path_string,conn)
 
 #def open_dir():global file_selected;print(file_selected)
@@ -128,29 +148,26 @@ def move2(root,username,conn,filebox):
         write_file_list(get_file_list(username,path,conn), filebox)
     else:
         mb.showerror('error','the file moving didnt secseed')
-move=partial(move2,username[0],conn,listbox)
+move=partial(move2,username,conn,listbox)
 
 
-move=partial(move2,root,username,conn,listbox)
 
-#def move():pass
+
 open_b=Button(buttons_frame, text = "open",command=open_dir, font=b_font)
 open_b.pack(side = LEFT, expand = 1)
 
 
 def change_permition():
-    global username
-    global conn
+    global username,conn, path
     per_list=get_per (path,conn)
-    d = per_dialog(root,username,conn,path+'/'+file_selected[0],["24"],["group hiiiiiiiiii"])
+    d = per_dialog(root,username,conn,path+'/'+file_selected[0],per_list)
     d.root.wait_window(d.top)
-    q=replace(username[0],path+'/'+file_selected[0],d.path)
-    if q=='ok':
-        write_file_list(get_file_list(username[0],path,conn), listbox)
-    else:
-        mb.showerror('error','the file change_permition didnt secseed')
 
-for f_name in ['back','delete','uploud','rename','move','change_permition']:
+
+
+    #mb.showerror('error','the file change_permition didnt secseed')
+
+for f_name in ['back','delete','uploud_file','create_directory','rename','move','change_permition']:
     Button(buttons_frame, text = f_name,command=eval(f_name), font=b_font).pack(side = LEFT, expand = 1)
 
 buttons_frame.pack(side=BOTTOM)
@@ -199,10 +216,9 @@ class log_in_dialog:
 
             username[0]=username2
             pasward=pasward2+''
-            if username2=='admin':
-                path='/admin'
-            else:
-                path='/admin/'+username[0]
+
+
+            path='/root/'+username[0]
             #print(get_file_list(username,path,conn))
             write_file_list(get_file_list(username[0],path,conn), filebox)
 
@@ -216,6 +232,7 @@ class sign_up_dialog:
 
         self.root = root
         top = self.top = Toplevel(root)
+        self.groups=set()
 
         eror_string = StringVar(value="")
         Label(top, textvariable=eror_string).pack()
@@ -229,11 +246,23 @@ class sign_up_dialog:
         self.e2 = Entry(top)
         self.e2.pack(padx=5)
 
+        Label(top, text="add groups").pack()
+
+        self.e3 = Entry(top)
+        self.e3.pack(padx=5)
+
+        add_b = Button(top, text="add", command=self.add_f)
+        add_b.pack(pady=5)
+
 
         new_f=partial(self.ok,eror_string)
+
         b = Button(top, text="OK", command=new_f)
         b.pack(pady=5)
 
+
+    def add_f(self):
+        self.groups.add(self.e3.get())
 
     def ok(self,eror_string):
 
@@ -241,7 +270,7 @@ class sign_up_dialog:
 
         username = self.e1.get()
         pasward = self.e2.get()
-        s=create_user(username,pasward,conn)
+        s=create_user(username,pasward,self.groups,conn)
 
         if s=="there was a conection eror":
             eror_string.set("there was a conection eror")
@@ -262,8 +291,8 @@ def log_in(hello_text,lisbox,path_string):
     d = log_in_dialog(root,listbox)
     d.root.wait_window(d.top)
     hello_text.set("   hello   \n"+username[0])
-    if path!="/admin":
-        path_string.set(path[6:])
+
+    path_string.set(path)
 log_in2=partial(log_in,hello_text,listbox,path_string)
 log_in_b=Button(frame, text = "log in",command=log_in2 ,  width = 10, font='Arial 12') .grid(row=1,column=0)#.pack(side = TOP, fill = X,anchor='ne')
 
@@ -277,11 +306,11 @@ def log_out(hello_text,path_string):
         if mb.askyesno('Verify', 'you sure that you want to log out?'):
             username[0]=""
             pasward=""
-            path='/admin'
+            path='/root'
             hello_text.set("   hello   \n"+username[0])
 
             write_file_list([],listbox)
-            path_string.set("")
+            path_string.set(path)
 log_out2=partial(log_out,hello_text,path_string)
 log_out_b=Button(frame, text = "log out",command=log_out2 ,  width = 10, font='Arial 12').grid(row=2,column=0)#.pack(side = TOP, fill = X)
 
@@ -294,7 +323,8 @@ log_out_b=Button(frame, text = "sign up",command=sign_up,  width = 10, font='Ari
 def show_log():
     global conn
     global username
-    if username=='admin':
+
+    if username[0]=='admin':
 
         d = log_dialog(root,conn)
         d.root.wait_window(d.top)

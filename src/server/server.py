@@ -46,7 +46,7 @@ class Server:
                 self.conn.commit()
 
                 if b:
-                    self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",('admin','admin',-1,'file'))
+                    self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",('root','root',-1,'file'))
                     self.conn.commit()
                 self.add_to_log("Opened database successfully")
 
@@ -97,6 +97,7 @@ class Server:
                 location_id=x[0][0]
         return location_id
 
+
     def print_db(self,id,space=0):
         if self.exists(id):
 
@@ -126,20 +127,25 @@ class Server:
                 for fille in file_list:
                     file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3]})
                 return file_list2
-            #permiton=self.check_permission(user,dir_id)
+            permiton=self.check_permission(user,dir_id)
+            if permiton:
 
-            """
+                """
 
-            file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
-             FROM file_table  INNER JOIN permission_table  on
-            file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()"""
-            file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
-            FROM file_table  WHERE location_id=? and creator=?''', (dir_id,user)).fetchall()
+                file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
+                FROM file_table  INNER JOIN permission_table  on
+                file_table._id=permission_table.file_id WHERE location_id=? and user=?''', (dir_id,user)).fetchall()"""
 
-            file_list2=[]
-            for fille in file_list:
-                file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3]})
-            return file_list2
+                file_list=self.conn.execute('''SELECT name ,creator ,location_id,type
+                FROM file_table  WHERE location_id=? ''', (dir_id,)).fetchall()
+                #and creator=?''', (dir_id,user)).fetchall()
+
+                file_list2=[]
+                for fille in file_list:
+                    file_list2.append({'name':fille[0],'creator':fille[1],'type':fille[3]})
+                return file_list2
+            else:
+                return self.permission_eror
         else :
             return self.exists_eror
 
@@ -291,7 +297,8 @@ class Server:
         """
         return all of the users that can see the file
         """
-        users=self.conn.execute('''SELECT (user_name,file_id) from permission_table WHERE file_id=?''',(file_id)).fetchall()
+        print(file_id)
+        users=self.conn.execute('''SELECT (user,file_id) from permission_table WHERE file_id=?''',(file_id)).fetchall()
         users_list=[]
         for user in users:
             users_list.append(user[0])
@@ -304,14 +311,20 @@ class Server:
             return(self.conn.execute('''SELECT user_name,user_password  from users WHERE user_name=?''',(name,)).fetchone()[1]==pasward)
         except:return (False)
 
-    def create_user(self,name,pasward,group=''):
+    def create_user(self,name,pasward,groups=[]):
         q=self.conn.execute('''SELECT user_name  from users WHERE user_name =?''',(name,)).fetchall()
         if len(q)==0 :
-            if name!="admin" and name!="ADMIN":
-                self.conn.execute("INSERT INTO  users (user_name, user_password ) VALUES (?,?, ?)",(name,pasward))
+            if name!="admin" and name!="ADMIN" and name!="":
+                self.conn.execute("INSERT INTO  users (user_name, user_password ) VALUES (?, ?)",(name,pasward))
                 self.conn.commit()
                 x=self.conn.execute("INSERT INTO file_table (name ,creator ,location_id ,type) VALUES (?,?, ?, ?)",(name,name,1,'file'))
+                self.conn.commit()
+                self.conn.execute("INSERT INTO permission_table (user,file_id ) VALUES (?, ?)",(name,1))
+                self.conn.commit()
                 return 'ok'
+                for groupp in groups:
+                    self.conn.execute("INSERT INTO groups (user,groupp ) VALUES ( ?, ?)",(name,groupp))
+                    self.conn.commit()
             else:
                 return("the username cant be 'admin'")
         else:

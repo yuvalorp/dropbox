@@ -5,20 +5,25 @@ from functools import partial
 from move_dialog import *
 class per_dialog:
     def __init__(self, root,username,conn,path,per_list):
-        self.path=path[0]
+        self.username=username
+        self.conn=conn
+
+
+        self.path=path
         self.top = Toplevel(root)
         Label(self.top ,text="use 'delete' to remove permition\n or use 'add' to add permition", font='Arial 13').pack()
         self.listbox=Listbox(self.top,  width = 30,height=10, font='Arial 12')
         self.listbox.bind('<<ListboxSelect>>', self.on_select)
-        for i in per_list:
-            self.group_per_list.append(0,i)
-        for i in group_per_list:
-            self.group_per_list.append(0,"group"+i)
+        self.per_list=per_list
+        if type(per_list):
+            for i in per_list:
+                self.per_list.append(0,i)
+
 
         self.listbox.pack()
         self.index=0
-        self.group_per_list=group_per_list
-        self.per_list=per_list
+
+
 
 
         self.txt=Entry(self.top, font='Arial 14')
@@ -47,15 +52,12 @@ class per_dialog:
     def add(self):
         x=self.txt.get()
         self.listbox.insert('end',x)
-        if len(x)>6:
-            if x[6:]=='group ' or x[6:]=='Group ' or x[6:]=='GROUP ':
-                self.group_per_list.append(x[:6])
-                return ()
-            return ()
-        self.per_list.append(x[:6])
+
+        self.per_list.append(x)
 
     def ok(self):
-        #q=change_per(self.path,self.per_list,self.group_per_list)
+
+        q=change_per(self.username,self.path,self.per_list,self.conn)
         self.top.destroy()
     def cancel(self):self.top.destroy()
     def on_select(self,event):

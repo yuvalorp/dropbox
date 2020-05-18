@@ -1,7 +1,7 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response,send_file
 from server import *
 from werkzeug.utils import secure_filename
-from json import dumps
+from json import dumps,loads
 
 
 
@@ -20,6 +20,7 @@ def get_file(username, filename):
 
     #http://localhost:5000/get_file/yuval/Themes/aero/he-IL/aerolite.msstyles.mui
     file_id=s.get_id(filename)
+    s.add_to_log("asked for file username: "+str(username)+"  filename: "+ filename)
     if file_id==s.exists_eror:return('the file didnt found')
     file_type=s.check_type(file_id )
     if file_type=='file':
@@ -27,20 +28,21 @@ def get_file(username, filename):
         return (r)
     else:
         if s.get_file(username,file_id)=='ok':
-            return(str(file_id))
+            #return(str(file_id))
+            return send_file(s.data_dir+'/'+str(file_id))
         else:
             return('')
 
+@app.route('/put_dir/<username>/<path:dirname>', methods=["POST"])
+def put_dir(username, dirname):
+    '''
+    get a directory and save it in the server
+    '''
 
-@app.route('/<username>/<path:dirname>', methods=["POST"])
-def put_file(username, dirname):
-    '''
-    get a file and save it in the server
-    '''
-    #http://localhost:5000/yuval/Themes/aero/he-IL?name=http_put_file_test&type=my_type
     name = request.args.get('name')
-    Type = request.args.get('type')
-    if type(name) is not unicode or type(Type) is not unicode:
+
+    s.add_to_log("user send file username: "+str(username)+"  directory name: "+ dirname)
+    if type(name) is not unicode:
         r = make_response('the parameters mast be string')
         r.status_code = 400
         return r
@@ -49,24 +51,49 @@ def put_file(username, dirname):
         return('the file didnt found')
     dir_type=s.check_type(dir_id )
     if dir_type=='file':
-        """
 
-        if ('content-type' in request.headers) and (request.headers['content-type'] == 'application/json'):
-            # Handle directory creation
-            pass
-
-        elif ('content-type' in request.headers) and (request.headers['content-type'].startswith('multipart/form-data')):
-            # Handle file upload
-            if ('file' in request.files):
-                request.files['file'].save('test.bin')
-        """
-
-        q=s.put_file(str(username),str(name),dir_id,str(Type))
-
+        q=s.put_file(str(username),str(name),dir_id,'file')
         if type(q) is int:
             return ''
         else:
             return q
+
+    else:
+        r = make_response('the path mast be a directory')
+        r.status_code = 400
+        return r
+
+@app.route('/put_file/<username>/<path:dirname>', methods=["POST"])
+def put_file(username, dirname):
+    '''
+    get a file and save it in the server
+    '''
+    #http://localhost:5000/yuval/Themes/aero/he-IL?name=http_put_file_test&type=my_type
+
+    s.add_to_log("user send file username: "+str(username)+"  directory name: "+ dirname)
+    dir_id=s.get_id(dirname)
+    if dir_id==s.exists_eror:
+        return('the file didnt found')
+    dir_type=s.check_type(dir_id )
+    if dir_type=='file':
+        if ('content-type' in request.headers) and (request.headers['content-type'].startswith('multipart/form-data')):
+
+            if ('file' in request.files):
+                fo = request.files['file']
+
+                print(fo)
+                print('filename ' + fo.filename)
+
+                q=s.put_file(str(username),fo.filename,dir_id,'txt')
+
+                if type(q) is int:
+
+                    print(s.data_dir+'/'+str(q))
+                    fo.save(s.data_dir+'/'+str(q))
+                    return ''
+                else:
+                    return q
+            return ''
 
     else:
         r = make_response('the path mast be a directory')
@@ -86,13 +113,14 @@ def change_permition(username, dirname):
     change permition to a file
     '''
 
-    names = request.args.getlist('names')
+    names = request.args.get('names')
+    s.add_to_log("asked for change permition for file username: "+str(username)+"  dirname: "+ dirname)
     dir_id=s.get_id(dirname)
     if dir_id==s.exists_eror:return('the file didnt found')
     if type(names) is  list :
-        s.add_permition(username,dir_id,names)
+        s.change_per(username,dir_id,names)
     elif type(names) is not unicode:
-        s.add_permition(username,dir_id,[names])
+        s.change_per(username,dir_id,[names])
     else:
         r = make_response('the parameters mast be string')
         r.status_code = 400
@@ -121,6 +149,7 @@ def del_file(username, dirname):
     '''
     #http://localhost:5000/yuval/Themes/aero/he-IL
     dir_id=s.get_id(dirname)
+    s.add_to_log("asked for delete file username: "+str(username)+"  dirname: "+ dirname)
 
     if dir_id==s.exists_eror:return('the file didnt found')
     q=s.del_file(username,dir_id)
@@ -137,6 +166,7 @@ def rename_file(username, dirname):
     '''
     #http://localhost:5000/yuval/Themes/aero/he-IL?new_name=moshe
     new_name = request.args.get('new_name')
+    s.add_to_log("asked for rename file username: "+str(username)+"  dirname: "+ dirname+"  new name: "+ new_name)
     if type(new_name) is not unicode :
         r = make_response('the parameters mast be string')
         r.status_code = 400
@@ -154,6 +184,7 @@ def rename_file(username, dirname):
 def check_pasward():
     pasward = request.args.get('pasward')
     user = request.args.get('user')
+    s.add_to_log("asked for check pasward: "+str(user)+"  pasward: "+ pasward)
     if type(pasward) is not unicode or type(user) is not unicode:
         r = make_response('the parameters mast be string')
         r.status_code = 400
@@ -165,11 +196,14 @@ def check_pasward():
 def create_user():
     pasward = request.args.get('pasward')
     user = request.args.get('user')
+    groups = loads(request.args.get('groups'))
+    s.add_to_log("asked for create user user: "+str(user)+"  pasward: "+ pasward)
+
     if type(pasward) is not unicode or type(user) is not unicode:
         r = make_response('the parameters mast be string')
         r.status_code = 400
         return r
-    return(s.create_user(user,pasward))
+    return(s.create_user(user,pasward,groups))
 
 
 @app.route('/who_can_see/<path:dirname>')
@@ -195,6 +229,7 @@ def groups_user_in(username):
 
 @app.route('/replace/<username>/<path:dirname>')
 def replace(username,dirname):
+
     new_place = request.args.get('new_place')
 
     if type(new_place) != unicode:
@@ -209,6 +244,7 @@ def replace(username,dirname):
         r.status_code = 400
         return r
     new_place=s.get_id(new_place)
+    s.add_to_log("asked for replace file id: "+str(file_id)+"  new place: "+ str(new_place))
     print(username,file_id,new_place)
 
 
@@ -235,6 +271,7 @@ def check_type(userame,dirname):
 
 @app.route('/get_log')
 def get_log():
-    return(s.get_log())
+    r=make_response({'log':s.get_log()})
+    return(r)
 
 if __name__ == '__main__':app.run(threaded=False)
