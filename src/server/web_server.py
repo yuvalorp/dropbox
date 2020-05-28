@@ -279,4 +279,4 @@ def get_log():
     r=make_response({'log':s.get_log()})
     return(r)
 
-if __name__ == '__main__':app.run(threaded=False)
+if __name__ == '__main__':app.run(host='0.0.0.0',threaded=False)

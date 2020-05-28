@@ -1,6 +1,5 @@
 from json import  loads,dumps
 import httplib
-from download import download
 def check_pasward(name,pas,conection):
     conection.request("GET", "/check_pasward?pasward="+pas+"&user="+name)
 
